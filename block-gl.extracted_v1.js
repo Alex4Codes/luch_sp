@@ -4733,6 +4733,7 @@
               this.update(performance.now());
             }
           });
+        });
       }
 
       initWebgl() {
