@@ -4745,45 +4745,25 @@
         this.$canvas = this.querySelector("canvas");
         this.$canvas.style.transform = "translateZ(0)";
       
-        // ─── ИСПРАВЛЕНИЕ ДЛЯ МОБИЛЬНЫХ ───────────────────────────────────────
-        // На iOS/Android WebGL-контекст может не рисовать кадры до
-        // первого пользовательского жеста. Решение: создаём контекст
-        // с powerPreference:"default" и принудительно «прогреваем» рендер
-        // через фиктивный touch-event + явный первый кадр.
-        
         this.renderer = new de({
           canvas: this.$canvas,
-          // Явно указываем, чтобы браузер не откладывал инициализацию GPU
           powerPreference: "default",
-          // preserveDrawingBuffer нужен, чтобы холст не очищался между кадрами
-          // на некоторых мобильных браузерах
           preserveDrawingBuffer: false,
         });
       
-        // Принудительно запускаем первый кадр как только DOM готов,
-        // не дожидаясь касания пользователя
+        // Принудительный запуск GPU-контекста на мобильных
         const kickstart = () => {
-          // Синтетически «активируем» контекст — это заставляет браузер
-          // разрешить рендеринг без реального жеста
-          if (this.renderer && this.renderer.gl) {
-            // Делаем минимальный draw call чтобы «разбудить» GPU-контекст
+          if (this.renderer?.gl) {
             const gl = this.renderer.gl;
             gl.clearColor(0, 0, 0, 0);
             gl.clear(gl.COLOR_BUFFER_BIT);
           }
-          // Удаляем обработчики после первого срабатывания
-          document.removeEventListener("touchstart", kickstart, { passive: true });
-          document.removeEventListener("pointerdown", kickstart, { passive: true });
+          document.removeEventListener("touchstart", kickstart);
+          document.removeEventListener("pointerdown", kickstart);
         };
-      
-        // Слушаем первое касание (на случай если автостарт не сработает)
         document.addEventListener("touchstart", kickstart, { passive: true });
         document.addEventListener("pointerdown", kickstart, { passive: true });
-      
-        // Немедленный вызов — пробуем запустить без ожидания жеста
-        // setTimeout 0 гарантирует выполнение после завершения текущего стека
         setTimeout(kickstart, 0);
-        // ─────────────────────────────────────────────────────────────────────
       
         window.addEventListener("pointermove", (event) => {
           const rect = this.renderer.canvas.getBoundingClientRect();
